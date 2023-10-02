@@ -1,13 +1,11 @@
 defmodule AssetTracker.Services.HasAbleToSell do
-  alias AssetTracker.Services.CalcBalance
+  alias AssetTracker.Services.CalcQuantity
 
-  def run(to_sell_asset) do
-    balance = CalcBalance.run(to_sell_asset.asset_tracker)
+  def run(selling_asset) do
+    quantity = CalcQuantity.run(selling_asset.asset_tracker) |> IO.inspect()
 
-    operation_value = to_sell_asset.operation_value |> Decimal.mult(-1)
-
-    case operation_value > balance do
-      true -> {:error, "Insufficient balance for this operation"}
+    case selling_asset.quantity > quantity do
+      true -> {:error, "Insufficient assets for this operation"}
       false -> :ok
     end
   end

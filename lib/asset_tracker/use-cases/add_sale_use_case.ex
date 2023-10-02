@@ -11,7 +11,7 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
           unit_price: Decimal.t()
         }
 
-  @spec execute(attrs()) :: {:ok, Asset.t()}
+  @spec execute(attrs()) :: {:ok, Map.t()}
   def execute(attrs) do
     with {:ok, asset} <- Asset.build(attrs),
          :ok <- HasAbleToSell.run(asset) do
@@ -36,24 +36,36 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
            }}
 
         false ->
-          sell_assets(assets, {asset})
+          sell_assets(assets, {asset, 0})
       end
     end
   end
 
-  defp sell_assets(assets, {updated_to_sell_asset}) do
-    [asset | _tl] = assets
-
+  defp sell_assets([asset | _tl] = assets, {updated_to_sell_asset, balance}) do
     case Decimal.gt?(updated_to_sell_asset.quantity, asset.quantity) do
-      true -> has_more_the_exist_asset()
-      false -> has_minus_the_exist_asset(assets, updated_to_sell_asset)
+      true -> sell_many_orders(assets, updated_to_sell_asset, balance)
+      false -> sell_one_order(assets, updated_to_sell_asset, balance)
     end
   end
 
-  defp has_more_the_exist_asset() do
+  defp sell_many_orders([asset | assets], selling_asset, balance) do
+    new_quantity = selling_asset.quantity - asset.quantity
+
+    quantity_to_calc = selling_asset.quantity - new_quantity
+
+    updated_selling_asset = put_in(selling_asset.quantity, new_quantity)
+
+    updated_balance =
+      calc_profit_or_loss(
+        asset.unit_price,
+        %{quantity: quantity_to_calc, unit_price: selling_asset.unit_price},
+        balance
+      )
+
+    sell_assets(assets, {updated_selling_asset, updated_balance})
   end
 
-  defp has_minus_the_exist_asset([asset | assets], to_sell_asset) do
+  defp sell_one_order([asset | assets], to_sell_asset, balance) do
     quantity = asset.quantity - to_sell_asset.quantity
     updated_operation_value = Decimal.mult(quantity, asset.unit_price)
 
@@ -70,23 +82,15 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
 
     Database.overwrite("assets", updated_assets)
 
-    operation_balance = calc_profit_or_loss(asset.unit_price, to_sell_asset)
+    operation_balance = calc_profit_or_loss(asset.unit_price, to_sell_asset, balance)
 
     {:ok, %{assets: updated_assets, operation_balance: operation_balance}}
   end
 
-  defp calc_profit_or_loss(asset_unit_price, to_sell_asset) do
-    operation_balance =
-      asset_unit_price
-      |> Decimal.sub(to_sell_asset.unit_price)
-      |> Decimal.mult(to_sell_asset.quantity)
-
-    case Decimal.gt?(operation_balance, -1) do
-      true ->
-        %{loss: operation_balance, profit: 0}
-
-      false ->
-        %{loss: 0, profit: Decimal.mult(operation_balance, -1)}
-    end
+  defp calc_profit_or_loss(asset_unit_price, to_sell_asset, balance) do
+    to_sell_asset.unit_price
+    |> Decimal.sub(asset_unit_price)
+    |> Decimal.mult(to_sell_asset.quantity)
+    |> Decimal.add(balance)
   end
 end

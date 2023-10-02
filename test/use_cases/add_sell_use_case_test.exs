@@ -77,7 +77,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
               quantity: new_asset_quantity
             }
           ],
-          operation_balance: %{profit: profit, loss: 0}
+          operation_balance: profit
         }
 
       assert ^expect = response
@@ -106,11 +106,10 @@ defmodule AssetTrackerTest.AddSellUseCase do
 
       assert {:ok, response} = AddSellUseCase.execute(selling_asset)
 
-      profit =
+      loss =
         selling_asset.unit_price
         |> Decimal.sub(asset.unit_price)
         |> Decimal.mult(selling_asset.quantity)
-        |> Decimal.mult(-1)
 
       new_asset_quantity = asset.quantity - selling_asset.quantity
 
@@ -126,7 +125,101 @@ defmodule AssetTrackerTest.AddSellUseCase do
               quantity: new_asset_quantity
             }
           ],
-          operation_balance: %{profit: 0, loss: profit}
+          operation_balance: loss
+        }
+
+      assert ^expect = response
+    end
+
+    test "It should be able to sell many orders and loss profit in this operation" do
+      Database.reset()
+
+      attrs = %{
+        asset_tracker: "AMZN",
+        symbol: "USD",
+        settle_date: NaiveDateTime.utc_now(),
+        quantity: 3,
+        unit_price: Decimal.new(5)
+      }
+
+      AddPurchaseUseCase.execute(attrs)
+
+      {:ok, asset} = AddPurchaseUseCase.execute(attrs)
+
+      selling_asset = %{
+        asset_tracker: "AMZN",
+        symbol: "USD",
+        settle_date: NaiveDateTime.utc_now(),
+        quantity: 4,
+        unit_price: Decimal.new(4)
+      }
+
+      {quantity, balance} = call_profit(selling_asset)
+
+      assert {:ok, response} = AddSellUseCase.execute(selling_asset)
+
+      assert "assets" |> Database.lookup() |> length() == 1
+
+      expect =
+        %{
+          assets: [
+            %Asset{
+              symbol: asset.symbol,
+              asset_tracker: asset.asset_tracker,
+              settle_date: asset.settle_date,
+              unit_price: asset.unit_price,
+              quantity: quantity,
+              operation_value: Decimal.mult(asset.unit_price, quantity)
+            }
+          ],
+          operation_balance: balance
+        }
+
+      assert ^expect = response
+    end
+
+    test "It should be able to sell many orders and have profit in this operation" do
+      Database.reset()
+
+      attrs = %{
+        asset_tracker: "AMZN",
+        symbol: "USD",
+        settle_date: NaiveDateTime.utc_now(),
+        quantity: 3,
+        unit_price: Decimal.new(5)
+      }
+
+      AddPurchaseUseCase.execute(attrs)
+
+      {:ok, asset} = AddPurchaseUseCase.execute(attrs)
+
+      selling_asset = %{
+        asset_tracker: "AMZN",
+        symbol: "USD",
+        settle_date: NaiveDateTime.utc_now(),
+        quantity: 4,
+        unit_price: Decimal.new(19)
+      }
+
+      {quantity, balance} = call_profit(selling_asset)
+
+      assert {:ok, response} = AddSellUseCase.execute(selling_asset)
+
+      assert "assets" |> Database.lookup() |> length() == 1
+
+      expect =
+        %{
+          assets: [
+            %Asset{
+              symbol: asset.symbol,
+              asset_tracker: asset.asset_tracker,
+              settle_date: asset.settle_date,
+              unit_price: asset.unit_price,
+              quantity: quantity,
+              operation_value: Decimal.mult(asset.unit_price, quantity)
+            }
+          ],
+          operation_balance: balance
         }
 
       assert ^expect = response
@@ -154,7 +247,41 @@ defmodule AssetTrackerTest.AddSellUseCase do
       }
 
       assert {:error, msg} = AddSellUseCase.execute(params)
-      assert msg == "Insufficient balance for this operation"
+      assert msg == "Insufficient assets for this operation"
     end
+  end
+
+  defp call_profit(selling_asset) do
+    "assets"
+    |> Database.lookup()
+    |> Enum.reduce({selling_asset.quantity, 0}, fn asset, {updated_asset_quantity, balance} ->
+      case asset.quantity < updated_asset_quantity do
+        true ->
+          asset_quantity = updated_asset_quantity - asset.quantity
+
+          result = Decimal.mult(selling_asset.unit_price, asset.quantity)
+
+          operation_per_quantity = Decimal.mult(asset.unit_price, asset.quantity)
+
+          total = Decimal.sub(result, operation_per_quantity)
+
+          balance = Decimal.add(balance, total)
+
+          {asset_quantity, balance}
+
+        false ->
+          result = Decimal.mult(selling_asset.unit_price, updated_asset_quantity)
+
+          operation_per_quantity = Decimal.mult(asset.unit_price, updated_asset_quantity)
+
+          new_asset_quantity = asset.quantity - updated_asset_quantity
+
+          total = Decimal.sub(result, operation_per_quantity)
+
+          balance = Decimal.add(balance, total)
+
+          {new_asset_quantity, balance}
+      end
+    end)
   end
 end
