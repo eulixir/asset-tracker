@@ -32,7 +32,7 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
            %{
              assets: updated_assets,
              loss: 0,
-             profit: 0
+             gain: 0
            }}
 
         false ->
@@ -56,7 +56,7 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
     updated_selling_asset = put_in(selling_asset.quantity, new_quantity)
 
     updated_balance =
-      calc_profit_or_loss(
+      calc_gain_or_loss(
         asset.unit_price,
         %{quantity: quantity_to_calc, unit_price: selling_asset.unit_price},
         balance
@@ -82,12 +82,12 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
 
     Database.overwrite("assets", updated_assets)
 
-    operation_balance = calc_profit_or_loss(asset.unit_price, to_sell_asset, balance)
+    operation_balance = calc_gain_or_loss(asset.unit_price, to_sell_asset, balance)
 
     {:ok, %{assets: updated_assets, operation_balance: operation_balance}}
   end
 
-  defp calc_profit_or_loss(asset_unit_price, to_sell_asset, balance) do
+  defp calc_gain_or_loss(asset_unit_price, to_sell_asset, balance) do
     to_sell_asset.unit_price
     |> Decimal.sub(asset_unit_price)
     |> Decimal.mult(to_sell_asset.quantity)

@@ -30,12 +30,12 @@ defmodule AssetTrackerTest.AddSellUseCase do
 
       assert {:ok, response} = AddSellUseCase.execute(params)
 
-      assert response.profit == 0
+      assert response.gain == 0
       assert response.loss == 0
       assert response.assets == []
     end
 
-    test "It should be able to sell when quantity is greather than first_asset and have profit in this operation" do
+    test "It should be able to sell when quantity is greather than first_asset and have gain in this operation" do
       Database.reset()
 
       asset = %{
@@ -58,7 +58,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
 
       assert {:ok, response} = AddSellUseCase.execute(selling_asset)
 
-      profit =
+      gain =
         selling_asset.unit_price
         |> Decimal.sub(asset.unit_price)
         |> Decimal.mult(2)
@@ -77,7 +77,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
               quantity: new_asset_quantity
             }
           ],
-          operation_balance: profit
+          operation_balance: gain
         }
 
       assert ^expect = response
@@ -131,7 +131,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
       assert ^expect = response
     end
 
-    test "It should be able to sell many orders and loss profit in this operation" do
+    test "It should be able to sell many orders and loss gain in this operation" do
       Database.reset()
 
       attrs = %{
@@ -154,7 +154,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
         unit_price: Decimal.new(4)
       }
 
-      {quantity, balance} = call_profit(selling_asset)
+      {quantity, balance} = call_gain(selling_asset)
 
       assert {:ok, response} = AddSellUseCase.execute(selling_asset)
 
@@ -178,7 +178,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
       assert ^expect = response
     end
 
-    test "It should be able to sell many orders and have profit in this operation" do
+    test "It should be able to sell many orders and have gain in this operation" do
       Database.reset()
 
       attrs = %{
@@ -201,7 +201,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
         unit_price: Decimal.new(19)
       }
 
-      {quantity, balance} = call_profit(selling_asset)
+      {quantity, balance} = call_gain(selling_asset)
 
       assert {:ok, response} = AddSellUseCase.execute(selling_asset)
 
@@ -251,7 +251,7 @@ defmodule AssetTrackerTest.AddSellUseCase do
     end
   end
 
-  defp call_profit(selling_asset) do
+  defp call_gain(selling_asset) do
     "assets"
     |> Database.lookup()
     |> Enum.reduce({selling_asset.quantity, 0}, fn asset, {updated_asset_quantity, balance} ->
