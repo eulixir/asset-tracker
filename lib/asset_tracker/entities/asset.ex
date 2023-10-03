@@ -10,11 +10,6 @@ defmodule AssetTracker.Entities.Asset do
           quantity: Integer.t()
         }
 
-  @spec new() :: %__MODULE__{}
-  def new() do
-    %__MODULE__{}
-  end
-
   @type build_attrs :: %{
           asset_tracker: String.t(),
           symbol: String.t(),

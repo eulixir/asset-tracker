@@ -35,5 +35,12 @@ defmodule AssetTrackerTest.UseCases.CalcValorizationUseCase do
       assert {:ok, balance} = CalcValorizationUseCase.execute("USD", "AMZN", 6)
       assert balance == Decimal.new(6)
     end
+
+    test "It should not be able to return balance when asset not exist" do
+      Database.reset()
+
+      assert {:ok, balance} = CalcValorizationUseCase.execute("BRL", "AMZN", 6)
+      assert balance == Decimal.new(0)
+    end
   end
 end

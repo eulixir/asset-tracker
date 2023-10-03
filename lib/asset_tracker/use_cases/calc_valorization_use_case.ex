@@ -28,7 +28,7 @@ defmodule AssetTracker.UseCases.CalcValorizationUseCase do
   end
 
   defp calc_corrected_wallet({balance, corrected_wallet}) do
-    balance = Decimal.sub(corrected_wallet, balance) |> IO.inspect()
+    balance = Decimal.sub(corrected_wallet, balance)
 
     {:ok, balance}
   end
