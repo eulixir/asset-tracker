@@ -14,8 +14,6 @@ permissions:
 
 jobs:
   test:
-    services:
-
     runs-on: ubuntu-latest
     name: Test on OTP ${{matrix.otp}} / Elixir ${{matrix.elixir}}
     strategy:
