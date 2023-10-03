@@ -1,4 +1,4 @@
-defmodule AssetTrackerTest.AddSellUseCase do
+defmodule AssetTrackerTest.UseCase.AddSellUseCase do
   use ExUnit.Case
 
   alias AssetTracker.Entities.Asset
