@@ -18,6 +18,8 @@ defmodule AssetTrackerTest.Services.HasAbleToSell do
         unit_price: Decimal.new(5)
       }
 
+      AddPurchaseUseCase.execute(params)
+
       {:ok, asset} =
         Asset.build(%{
           asset_tracker: "AMZN",
@@ -26,8 +28,6 @@ defmodule AssetTrackerTest.Services.HasAbleToSell do
           quantity: 3,
           unit_price: Decimal.new(5)
         })
-
-      AddPurchaseUseCase.execute(params)
 
       assert :ok = HasAbleToSell.run(asset)
     end
@@ -43,6 +43,8 @@ defmodule AssetTrackerTest.Services.HasAbleToSell do
         unit_price: Decimal.new(5)
       }
 
+      AddPurchaseUseCase.execute(params)
+
       {:ok, asset} =
         Asset.build(%{
           asset_tracker: "AMZN",
@@ -52,9 +54,38 @@ defmodule AssetTrackerTest.Services.HasAbleToSell do
           unit_price: Decimal.new(5)
         })
 
-      AddPurchaseUseCase.execute(params)
-
       assert {:error, "Insufficient assets for this operation"} = HasAbleToSell.run(asset)
+    end
+
+    test "It should not be able to return ok when asset does not exist" do
+      Database.reset()
+
+      {:ok, asset} =
+        Asset.build(%{
+          asset_tracker: "AMZN",
+          symbol: "USD",
+          settle_date: NaiveDateTime.utc_now(),
+          quantity: 5,
+          unit_price: Decimal.new(5)
+        })
+
+      assert {:error, "Asset not found"} = HasAbleToSell.run(asset)
+    end
+
+    test "It should not be able to return ok when quantity equals a zero" do
+      Database.reset()
+
+      params = %{
+        asset_tracker: "AMZN",
+        symbol: "USD",
+        settle_date: NaiveDateTime.utc_now(),
+        quantity: 0,
+        unit_price: Decimal.new(5)
+      }
+
+      {:ok, asset} = Asset.build(params)
+
+      assert {:error, "The least you can do is more than one"} = HasAbleToSell.run(asset)
     end
   end
 end

@@ -1,4 +1,26 @@
 defmodule AssetTracker.UseCases.AddSellUseCase do
+  @moduledoc """
+  A module for adding asset sell records and calculating gains or losses.
+
+  This module provides functionality for adding sell records of assets to the database and calculating the gains or losses incurred from the sales.
+  It ensures that assets are sold in an appropriate manner based on their quantities and unit prices.
+
+  ## Usage
+
+  You can use the `execute/1` function to add a sell record to the database and calculate gains or losses.
+
+  ```elixir
+  attrs = %{
+    asset_tracker: "Stocks",
+    symbol: "AAPL",
+    settle_date: ~N[2023-10-04 14:30:00],
+    quantity: 5,
+    unit_price: Decimal.new("160.00")
+  }
+
+  {:ok, result} = AssetTracker.UseCases.AddSellUseCase.execute(attrs)
+  """
+
   alias AssetTracker.Services.HasAbleToSell
   alias AssetTracker.Database
   alias AssetTracker.Entities.Asset

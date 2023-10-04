@@ -19,7 +19,17 @@ defmodule AssetTrackerTest.Services.CalcBalance do
 
       AddPurchaseUseCase.execute(params)
 
-      balance = CalcBalance.run("AMZN")
+      params = %{
+        asset_tracker: "GOOGL",
+        symbol: "USD",
+        settle_date: NaiveDateTime.utc_now(),
+        quantity: 3,
+        unit_price: Decimal.new(5)
+      }
+
+      AddPurchaseUseCase.execute(params)
+
+      {:ok, balance} = CalcBalance.run("AMZN")
 
       assert balance == Decimal.new(15)
     end
@@ -27,9 +37,7 @@ defmodule AssetTrackerTest.Services.CalcBalance do
     test "It should not be able to calc balance when asset name does not exist" do
       Database.reset()
 
-      balance = CalcBalance.run("GOOGL")
-
-      assert balance == 0
+      assert {:error, "Asset not found"} = CalcBalance.run("GOOGL")
     end
   end
 end
