@@ -1,10 +1,8 @@
 defmodule AssetTrackerTest do
   use ExUnit.Case
 
-  alias AssetTracker.Entities.Asset
   alias AssetTracker.Database
   alias AssetTracker.UseCases.AddPurchaseUseCase
-  alias AssetTracker.UseCases.AddSellUseCase
 
   describe "Test Asset Tracker delegate module" do
     test "It should be able to purchase a asset" do

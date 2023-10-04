@@ -4,7 +4,7 @@ defmodule AssetTracker do
   """
 
   alias AssetTracker.UseCases.AddPurchaseUseCase
-  alias AssetTracker.UseCases.AddSellUseCase
+  alias AssetTracker.UseCases.AddSaleUseCase
   alias AssetTracker.UseCases.CalcValuationUseCase
 
   @type build_attrs :: %{
@@ -19,7 +19,7 @@ defmodule AssetTracker do
   defdelegate add_purchase(params), to: AddPurchaseUseCase, as: :execute
 
   @spec add_sale(params :: build_attrs()) :: {:ok, Map.t()}
-  defdelegate add_sale(params), to: AddSellUseCase, as: :execute
+  defdelegate add_sale(params), to: AddSaleUseCase, as: :execute
 
   @spec calc_valuation(String.t(), String.t(), Integer.t()) :: {:ok, Decimal.t()}
   defdelegate calc_valuation(symbol, asset, unit_price), to: CalcValuationUseCase, as: :execute

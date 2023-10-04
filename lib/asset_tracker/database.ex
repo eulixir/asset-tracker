@@ -2,7 +2,7 @@ defmodule AssetTracker.Database do
   def init() do
     :ets.new(:asset_tracker, [:public, :named_table])
     :ets.insert_new(:asset_tracker, {"assets", []})
-    :ets.insert_new(:asset_tracker, {"sells", []})
+    :ets.insert_new(:asset_tracker, {"sales", []})
   end
 
   def insert(table, attrs) do
@@ -21,6 +21,6 @@ defmodule AssetTracker.Database do
 
   def reset() do
     :ets.insert(:asset_tracker, {"assets", []})
-    :ets.insert_new(:asset_tracker, {"sells", []})
+    :ets.insert(:asset_tracker, {"sales", []})
   end
 end

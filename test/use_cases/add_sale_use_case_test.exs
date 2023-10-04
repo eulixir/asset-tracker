@@ -1,12 +1,12 @@
-defmodule AssetTrackerTest.UseCase.AddSellUseCase do
+defmodule AssetTrackerTest.UseCase.AddSaleUseCase do
   use ExUnit.Case
 
   alias AssetTracker.Entities.Asset
   alias AssetTracker.Database
   alias AssetTracker.UseCases.AddPurchaseUseCase
-  alias AssetTracker.UseCases.AddSellUseCase
+  alias AssetTracker.UseCases.AddSaleUseCase
 
-  describe "Test AddSellUseCase.execute/4" do
+  describe "Test AddSaleUseCase.execute/4" do
     test "It should be able to sell when the first operation_value asset is equal to sell asset" do
       Database.reset()
 
@@ -28,11 +28,15 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         unit_price: Decimal.new(-5)
       }
 
-      assert {:ok, response} = AddSellUseCase.execute(params)
+      assert {:ok, response} = AddSaleUseCase.execute(params)
 
       assert response.gain == 0
       assert response.loss == 0
       assert response.assets == []
+
+      sells = Database.lookup("sales")
+
+      assert length(sells) == 1
     end
 
     test "It should be able to sell when quantity is greather than first_asset and have gain in this operation" do
@@ -56,7 +60,7 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         unit_price: Decimal.new(6)
       }
 
-      assert {:ok, response} = AddSellUseCase.execute(selling_asset)
+      assert {:ok, response} = AddSaleUseCase.execute(selling_asset)
 
       gain =
         selling_asset.unit_price
@@ -81,6 +85,10 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         }
 
       assert ^expect = response
+
+      sells = Database.lookup("sales")
+
+      assert length(sells) == 1
     end
 
     test "It should be able to sell when quantity is lower than first_asset and have loss in this operation" do
@@ -104,7 +112,7 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         unit_price: Decimal.new(4)
       }
 
-      assert {:ok, response} = AddSellUseCase.execute(selling_asset)
+      assert {:ok, response} = AddSaleUseCase.execute(selling_asset)
 
       loss =
         selling_asset.unit_price
@@ -129,6 +137,10 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         }
 
       assert ^expect = response
+
+      sells = Database.lookup("sales")
+
+      assert length(sells) == 1
     end
 
     test "It should be able to sell many orders and loss gain in this operation" do
@@ -156,7 +168,7 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
 
       {quantity, balance} = call_gain(selling_asset)
 
-      assert {:ok, response} = AddSellUseCase.execute(selling_asset)
+      assert {:ok, response} = AddSaleUseCase.execute(selling_asset)
 
       assert "assets" |> Database.lookup() |> length() == 1
 
@@ -176,6 +188,10 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         }
 
       assert ^expect = response
+
+      sells = Database.lookup("sales")
+
+      assert length(sells) == 2
     end
 
     test "It should be able to sell many orders and have gain in this operation" do
@@ -203,7 +219,7 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
 
       {quantity, balance} = call_gain(selling_asset)
 
-      assert {:ok, response} = AddSellUseCase.execute(selling_asset)
+      assert {:ok, response} = AddSaleUseCase.execute(selling_asset)
 
       assert "assets" |> Database.lookup() |> length() == 1
 
@@ -223,6 +239,10 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         }
 
       assert ^expect = response
+
+      sells = Database.lookup("sales")
+
+      assert length(sells) == 2
     end
 
     test "It should not be able to sell when does not have balance do operate" do
@@ -246,7 +266,7 @@ defmodule AssetTrackerTest.UseCase.AddSellUseCase do
         unit_price: Decimal.new(-5)
       }
 
-      assert {:error, msg} = AddSellUseCase.execute(params)
+      assert {:error, msg} = AddSaleUseCase.execute(params)
       assert msg == "Insufficient assets for this operation"
     end
   end

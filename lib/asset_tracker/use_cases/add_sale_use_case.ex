@@ -1,4 +1,4 @@
-defmodule AssetTracker.UseCases.AddSellUseCase do
+defmodule AssetTracker.UseCases.AddSaleUseCase do
   @moduledoc """
   A module for adding asset sell records and calculating gains or losses.
 
@@ -18,7 +18,7 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
     unit_price: Decimal.new("160.00")
   }
 
-  {:ok, result} = AssetTracker.UseCases.AddSellUseCase.execute(attrs)
+  {:ok, result} = AssetTracker.UseCases.AddSaleUseCase.execute(attrs)
   """
 
   alias AssetTracker.Services.HasAbleToSell
@@ -48,6 +48,9 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
       case value === asset.operation_value do
         true ->
           [_ | updated_assets] = assets
+
+          save_selling_asset(asset, asset)
+
           Database.overwrite("assets", updated_assets)
 
           {:ok,
@@ -63,10 +66,10 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
     end
   end
 
-  defp sell_assets([asset | _tl] = assets, {updated_to_sell_asset, balance}) do
-    case Decimal.gt?(updated_to_sell_asset.quantity, asset.quantity) do
-      true -> sell_many_orders(assets, updated_to_sell_asset, balance)
-      false -> sell_one_order(assets, updated_to_sell_asset, balance)
+  defp sell_assets([asset | _tl] = assets, {selling_asset, balance}) do
+    case Decimal.gt?(selling_asset.quantity, asset.quantity) do
+      true -> sell_many_orders(assets, selling_asset, balance)
+      false -> sell_one_order(assets, selling_asset, balance)
     end
   end
 
@@ -76,6 +79,8 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
     quantity_to_calc = selling_asset.quantity - new_quantity
 
     updated_selling_asset = put_in(selling_asset.quantity, new_quantity)
+
+    save_selling_asset(asset, selling_asset)
 
     updated_balance =
       calc_gain_or_loss(
@@ -87,8 +92,8 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
     sell_assets(assets, {updated_selling_asset, updated_balance})
   end
 
-  defp sell_one_order([asset | assets], to_sell_asset, balance) do
-    quantity = asset.quantity - to_sell_asset.quantity
+  defp sell_one_order([asset | assets], selling_asset, balance) do
+    quantity = asset.quantity - selling_asset.quantity
     updated_operation_value = Decimal.mult(quantity, asset.unit_price)
 
     updated_asset = %Asset{
@@ -102,17 +107,32 @@ defmodule AssetTracker.UseCases.AddSellUseCase do
 
     updated_assets = [updated_asset | assets]
 
+    save_selling_asset(asset, selling_asset)
+
     Database.overwrite("assets", updated_assets)
 
-    operation_balance = calc_gain_or_loss(asset.unit_price, to_sell_asset, balance)
+    operation_balance = calc_gain_or_loss(asset.unit_price, selling_asset, balance)
 
     {:ok, %{assets: updated_assets, operation_balance: operation_balance}}
   end
 
-  defp calc_gain_or_loss(asset_unit_price, to_sell_asset, balance) do
-    to_sell_asset.unit_price
+  defp calc_gain_or_loss(asset_unit_price, selling_asset, balance) do
+    selling_asset.unit_price
     |> Decimal.sub(asset_unit_price)
-    |> Decimal.mult(to_sell_asset.quantity)
+    |> Decimal.mult(selling_asset.quantity)
     |> Decimal.add(balance)
+  end
+
+  defp save_selling_asset(asset, selling_asset) do
+    attrs = %{
+      asset_name: asset.asset_tracker,
+      original_price: asset.unit_price,
+      symbol: asset.symbol,
+      selling_price: selling_asset.unit_price,
+      quantity: selling_asset.quantity,
+      operation_datetime: NaiveDateTime.local_now()
+    }
+
+    Database.insert("sales", attrs)
   end
 end
